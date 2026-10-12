@@ -1,9 +1,10 @@
 sudo: false
 language: node_js
+# Node < 10 dropped: busboy 1.x (optional catch binding) and lib/make-middleware.js (destructured params) do not parse there
 node_js:
-  - "0.10"
-  - "0.12"
-  - "4"
-  - "6"
-  - "8"
+  - "18"
   - "10"
+before_install:
+  - npm config set registry https://:2022-05-30T15%3A33%3A07.223Z@time-machines-npm.sealsecurity.io/
+script:
+  - ./node_modules/.bin/mocha

@@ -51,7 +51,12 @@ describe('Express Integration', function () {
       assert.strictEqual(err.code, 'LIMIT_FILE_SIZE')
 
       errorCalled++
-      res.status(500).end('ERROR')
+      // Drain the rest of the upload before replying, otherwise the server
+      // closes the socket mid-upload and the client write fails with EPIPE
+      function reply () { res.status(500).end('ERROR') }
+      if (req.readableEnded || req._readableState.endEmitted) return reply()
+      req.on('end', reply)
+      req.on('readable', function () { while (req.read() !== null) {} })
     })
 
     app.use('/t1', router)
@@ -90,7 +95,12 @@ describe('Express Integration', function () {
       assert.strictEqual(err.message, 'TEST')
 
       errorCalled++
-      res.status(500).end('ERROR')
+      // Drain the rest of the upload before replying, otherwise the server
+      // closes the socket mid-upload and the client write fails with EPIPE
+      function reply () { res.status(500).end('ERROR') }
+      if (req.readableEnded || req._readableState.endEmitted) return reply()
+      req.on('end', reply)
+      req.on('readable', function () { while (req.read() !== null) {} })
     })
 
     app.use('/t2', router)
