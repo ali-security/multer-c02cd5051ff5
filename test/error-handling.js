@@ -264,4 +264,43 @@ describe('Error Handling', function () {
       done()
     })
   })
+
+  it('should drain the request stream after an error', function (done) {
+    function fileFilter (req, file, cb) {
+      cb(new Error('TEST'))
+    }
+
+    var form = new FormData()
+    var upload = multer({ fileFilter: fileFilter }).single('large')
+
+    form.append('large', util.file('large.jpg'))
+
+    util.submitForm(upload, form, function (err, req) {
+      assert.strictEqual(err.message, 'TEST')
+
+      // the unparsed remainder of the upload must be consumed, otherwise the
+      // request stays paused with its data buffered and is never released
+      if (req._readableState.endEmitted) return done()
+      req.on('end', done)
+    })
+  })
+
+  it('should report errors from the request stream', function (done) {
+    var req = new stream.PassThrough()
+    var storage = multer.memoryStorage()
+    var upload = multer({ storage: storage }).single('tiny0')
+    var boundary = 'AaB03x'
+
+    req.headers = {
+      'content-type': 'multipart/form-data; boundary=' + boundary,
+      'content-length': 100
+    }
+
+    upload(req, null, function (err) {
+      assert.strictEqual(err.message, 'Test request error')
+      done()
+    })
+
+    req.emit('error', new Error('Test request error'))
+  })
 })
